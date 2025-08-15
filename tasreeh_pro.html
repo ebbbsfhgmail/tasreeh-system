@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>النظام العسكري الشامل لإدارة التصاريح</title>
+    <!-- Icons Library (Font Awesome) -->
+    <link rel="stylesheet" href="all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;700&family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-bg: #f0f2f5; --secondary-bg: #ffffff; --sidebar-bg: #2c3e50;
+            --header-bg: #34495e; --primary-text: #333333; --secondary-text: #ecf0f1;
+            --accent-color: #3498db; --border-color: #dfe4e8;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08); --sidebar-width-desktop: 420px;
+            --preview-font-size: 19px; --preview-font-color: #000000;
+        }
+
+        .dark-mode {
+            --primary-bg: #1a1a2e; --secondary-bg: #24243e; --sidebar-bg: #1f1f34;
+            --header-bg: #2a2a4a; --primary-text: #e0e0e0; --secondary-text: #e0e0e0;
+            --accent-color: #5d9cec; --border-color: #444466; --preview-font-color: #f0f0f0;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        
+        body {
+            font-family: 'Tajawal', sans-serif; background-color: var(--primary-bg); color: var(--primary-text);
+            display: flex; transition: background-color 0.3s, color 0.3s;
+            min-height: 100vh; overflow-x: hidden;
+        }
+        
+        /* --- Sidebar --- */
+        #sidebar {
+            width: 90%; max-width: 420px; height: 100vh; background-color: var(--sidebar-bg);
+            color: var(--secondary-text); display: flex; flex-direction: column;
+            position: fixed; right: 0; top: 0; box-shadow: -5px 0 15px rgba(0,0,0,0.2);
+            z-index: 1000; transform: translateX(100%); transition: transform 0.3s ease-in-out;
+            overflow-y: auto;
+        }
+        #sidebar.visible { transform: translateX(0); }
+        .sidebar-header {
+            padding: 20px; text-align: center; background-color: var(--header-bg);
+            position: sticky; top: 0; z-index: 10;
+        }
+        .sidebar-header h2 { font-size: 1.6rem; }
+        .sidebar-content { flex-grow: 1; padding: 15px; }
+
+        .control-section {
+            background-color: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 20px;
+            padding: 15px; border: 1px solid rgba(255,255,255,0.1);
+        }
+        .control-section-header {
+            font-size: 1.2rem; font-weight: 600; margin-bottom: 15px;
+            padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+        details > summary {
+            font-size: 1.2rem; font-weight: 600; cursor: pointer; list-style: none;
+            padding: 10px; border-radius: 5px; margin-bottom: 10px;
+            background-color: rgba(0,0,0,0.2); transition: background-color 0.2s;
+        }
+        details > summary::-webkit-details-marker { display: none; }
+        details[open] > summary { background-color: var(--accent-color); }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 8px; font-size: 1rem; }
+        input, select, textarea {
+            width: 100%; padding: 14px; border-radius: 5px; border: 1px solid var(--border-color);
+            background-color: var(--primary-bg); color: var(--primary-text);
+            font-size: 1.1rem; font-family: 'Tajawal', sans-serif;
+        }
+        textarea { resize: vertical; min-height: 120px; }
+
+        /* Signature Pad */
+        .signature-pad { background-color: white; border: 2px dashed var(--border-color); cursor: crosshair; }
+        #signature-canvas { display: block; width: 100%; height: 150px; }
+        .signature-controls { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .signature-controls .color-btn, .signature-controls .size-btn {
+            border: 2px solid #fff; transition: transform 0.2s; cursor: pointer;
+            padding: 8px; border-radius: 5px;
+        }
+        .signature-controls .color-btn { width: 40px; height: 40px; border-radius: 50%; }
+        .signature-controls .active { transform: scale(1.2); box-shadow: 0 0 0 3px var(--accent-color); }
+        .signature-buttons { display: flex; gap: 10px; margin-top: 10px; }
+        
+        /* Buttons */
+        .btn {
+            display: flex; align-items: center; justify-content: center;
+            width: 100%; padding: 15px; border: none; border-radius: 8px;
+            font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: all 0.3s;
+            gap: 10px; margin-bottom: 10px;
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background-color: var(--accent-color); color: white; }
+        .btn-secondary { background-color: #6c757d; color: white; }
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-warning { background-color: #f39c12; color: white; }
+
+        /* Main Content */
+        #main-content { width: 100%; padding: 15px; transition: margin-right 0.3s ease-in-out; }
+        .toolbar {
+            width: 100%; background-color: var(--secondary-bg); padding: 15px;
+            border-radius: 12px; box-shadow: var(--shadow);
+            display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px;
+        }
+        .toolbar-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; width: 100%; justify-content: center; }
+        .toolbar .btn { width: auto; padding: 10px 15px; }
+        
+        /* Permit Preview */
+        #permit-wrapper { max-width: 840px; margin: 0 auto; }
+        .permit-preview {
+            background: white; color: var(--preview-font-color);
+            border: 2px double #000; padding: 30px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            font-family: 'Amiri', serif;
+            font-size: var(--preview-font-size);
+            position: relative;
+            width: 100%;
+            aspect-ratio: 210 / 297; /* A4 Ratio */
+            display: flex; flex-direction: column;
+        }
+        .permit-header { text-align: center; margin-bottom: 30px; }
+        .permit-header h1 { font-size: 1.4em; font-weight: bold; margin-bottom: 15px; }
+        .permit-header h2 { font-size: 1.3em; font-weight: bold; padding: 5px 20px; border-bottom: 3px double #000; display: inline-block; }
+        .permit-content { line-height: 2.5; white-space: pre-wrap; flex-grow: 1; }
+        .optional-data { margin-top: 25px; padding-top: 15px; border-top: 1px dashed #ccc; font-size: 0.9em; }
+        
+        .permit-footer {
+            margin-top: auto; padding-top: 20px;
+            display: flex; justify-content: space-between; align-items: flex-end; width: 100%; gap: 20px;
+        }
+        .footer-section { text-align: center; flex: 1; min-width: 150px; }
+        .footer-section p { font-weight: bold; margin-bottom: 10px; font-size: 0.9em; }
+        #signature-preview-img { max-height: 90px; max-width: 200px; }
+        .serial-container { font-weight: bold; padding: 5px; border: 1px solid #ccc; background: #f9f9f9; margin: 0 auto; color: #000; }
+        #stamp-preview-img { max-width: 130px; max-height: 130px; display: none; }
+        .serial-number { position: absolute; top: 15px; left: 15px; font-size: 0.7em; font-family: 'Courier New', monospace; }
+        
+        /* History List */
+        .history-list { list-style: none; width: 100%; }
+        .history-item { 
+            padding: 12px; border-radius: 8px; margin-bottom: 10px; 
+            background-color: rgba(0,0,0,0.2); transition: background-color 0.2s;
+        }
+        .history-item-header { display: flex; justify-content: space-between; align-items: center; }
+        .history-item-info { cursor: pointer; flex-grow: 1; }
+        .history-item-actions { display: flex; gap: 10px; }
+        .history-btn { background: none; border: none; color: white; font-size: 1.1rem; cursor: pointer; padding: 5px; border-radius: 5px; transition: background-color 0.2s; }
+        .history-btn:hover { background-color: rgba(255,255,255,0.2); }
+        .history-btn.delete { color: #e74c3c; }
+
+        /* Fullscreen Editor Modal */
+        #editor-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.8); z-index: 2000;
+            display: none; flex-direction: column; padding: 15px;
+        }
+        #editor-modal.visible { display: flex; }
+        #modal-textarea { width: 100%; flex-grow: 1; font-size: 1.2rem; padding: 15px; margin-bottom: 15px; }
+        
+        /* Sidebar Overlay for mobile */
+        .sidebar-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0,0,0,0.5); z-index: 999;
+            opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s;
+        }
+        .sidebar-overlay.visible { opacity: 1; visibility: visible; }
+
+        /* Desktop Styles */
+        @media (min-width: 992px) {
+            #sidebar { width: var(--sidebar-width-desktop); transform: translateX(0); }
+            #main-content { margin-right: var(--sidebar-width-desktop); }
+            #toggle-sidebar-btn { display: none; }
+            .sidebar-overlay { display: none; }
+            .toolbar { flex-direction: row; justify-content: space-between; }
+            .toolbar-group { width: auto; }
+        }
+
+        @media print {
+            body { background: none; }
+            #sidebar, .toolbar, .sidebar-overlay, #editor-modal { display: none !important; }
+            #main-content { margin: 0 !important; width: 100%; padding: 0; }
+            #permit-wrapper { max-width: 100%; }
+            .permit-preview { box-shadow: none; border: 1px solid #000; page-break-after: always; height: 100vh !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    
+    <div id="sidebar">
+        <div class="sidebar-header">
+            <h2><i class="fas fa-cog"></i> لوحة التحكم</h2>
+        </div>
+        <div class="sidebar-content">
+            <div class="control-section">
+                <div class="control-section-header">نموذج التصريح</div>
+                <select id="permit-template"></select>
+                <button class="btn btn-success" id="save-btn"><i class="fas fa-save"></i> حفظ التغييرات</button>
+            </div>
+
+            <details class="accordion-details" open>
+                <summary>البيانات الأساسية</summary>
+                <div class="control-section">
+                    <div class="input-group"><label for="soldier-name">الاسم</label><input type="text" id="soldier-name"></div>
+                    <div class="input-group"><label for="rank">الرتبة</label><input type="text" id="rank"></div>
+                    <div class="input-group"><label for="mil-id">الرقم العسكري</label><input type="text" id="mil-id"></div>
+                    <div class="input-group"><label for="unit">الوحدة/الجهة</label><input type="text" id="unit"></div>
+                    <div class="input-group"><label for="start-date">من تاريخ</label><input type="date" id="start-date"></div>
+                    <div class="input-group"><label for="end-date">إلى تاريخ</label><input type="date" id="end-date"></div>
+                    <div class="input-group"><label for="duration">المدة</label><input type="text" id="duration"></div>
+                    <div class="input-group"><label for="reason">السبب/الوجهة</label><input type="text" id="reason"></div>
+                </div>
+            </details>
+
+            <details class="accordion-details">
+                <summary>بيانات شخصية إضافية</summary>
+                <div class="control-section">
+                    <div class="input-group"><label for="nationality">الجنسية</label><input type="text" id="nationality"></div>
+                    <div class="input-group"><label for="blood-type">فصيلة الدم</label><input type="text" id="blood-type"></div>
+                    <div class="input-group"><label for="religion">الديانة</label><input type="text" id="religion"></div>
+                    <div class="input-group"><label for="national-id">رقم الهوية الوطنية</label><input type="text" id="national-id"></div>
+                    <div class="input-group"><label for="passport-id">رقم جواز السفر</label><input type="text" id="passport-id"></div>
+                </div>
+            </details>
+            
+            <details class="accordion-details">
+                <summary>معلومات المهمة/المركبة</summary>
+                <div class="control-section">
+                    <div class="input-group"><label for="mission-details">طبيعة المهمة</label><input type="text" id="mission-details"></div>
+                    <div class="input-group"><label for="vehicle-type">نوع المركبة</label><input type="text" id="vehicle-type"></div>
+                    <div class="input-group"><label for="vehicle-plate">رقم لوحة المركبة</label><input type="text" id="vehicle-plate"></div>
+                    <div class="input-group"><label for="weapon-type">نوع السلاح</label><input type="text" id="weapon-type"></div>
+                    <div class="input-group"><label for="weapon-serial">رقم السلاح</label><input type="text" id="weapon-serial"></div>
+                </div>
+            </details>
+
+            <div class="control-section">
+                <div class="control-section-header">محتوى المنشور</div>
+                <textarea id="content-editor" rows="8"></textarea>
+                <button class="btn btn-secondary" id="fullscreen-edit-btn"><i class="fas fa-expand"></i> تعديل في صفحة كاملة</button>
+            </div>
+            
+            <div class="control-section">
+                <div class="control-section-header">التوقيع اليدوي</div>
+                <div class="signature-controls">
+                    <div class="color-btn active" style="background-color: #000;" data-color="#000"></div>
+                    <div class="color-btn" style="background-color: #0000ff;" data-color="#0000ff"></div>
+                    <div class="color-btn" style="background-color: #8b0000;" data-color="#8b0000"></div>
+                    <div class="size-btn" data-size="1">دقيق</div>
+                    <div class="size-btn active" data-size="2.5">متوسط</div>
+                    <div class="size-btn" data-size="5">عريض</div>
+                </div>
+                <div class="signature-pad"><canvas id="signature-canvas"></canvas></div>
+                <div class="signature-buttons">
+                    <button class="btn btn-warning" id="undo-signature"><i class="fas fa-undo"></i> تراجع</button>
+                    <button class="btn btn-secondary" id="clear-signature"><i class="fas fa-eraser"></i> مسح</button>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <div class="control-section-header">الختم الرسمي</div>
+                <input type="file" id="stamp-upload" accept="image/*" style="display: none;">
+                <button class="btn btn-secondary" id="upload-stamp-btn"><i class="fas fa-upload"></i> تحميل صورة الختم</button>
+                <button class="btn btn-secondary" id="remove-stamp-btn"><i class="fas fa-trash"></i> إزالة الختم</button>
+            </div>
+            
+            <div class="control-section">
+                <div class="control-section-header">سجل التصاريح المحفوظة</div>
+                <ul class="history-list" id="history-list"></ul>
+            </div>
+        </div>
+    </div>
+    
+    <div id="main-content">
+        <div class="toolbar">
+            <div class="toolbar-group">
+                <button class="btn btn-primary" id="toggle-sidebar-btn"><i class="fas fa-bars"></i> التحكم</button>
+                <button class="btn btn-secondary" id="save-image-btn"><i class="fas fa-camera"></i> حفظ كصورة</button>
+                <button class="btn btn-secondary" id="print-btn"><i class="fas fa-print"></i> طباعة</button>
+                <button class="btn btn-success" id="share-btn"><i class="fas fa-share-alt"></i> مشاركة</button>
+            </div>
+            <div class="toolbar-group">
+                <label>الخط: -المطور إبراهيم عبدالحكيم</label> <select id="font-select">
+                    <option value="'Amiri', serif">Amiri</option>
+                    <option value="'Tajawal', sans-serif">Tajawal</option>
+                    <option value="'Cairo', sans-serif">Cairo</option>
+                </select>
+                <label>اللون:</label> <input type="color" id="font-color-picker" value="#000000">
+                <label>الحجم:</label> <input type="range" id="font-size-slider" min="14" max="28" value="19" step="1">
+            </div>
+            <div class="toolbar-group">
+                <button class="btn btn-secondary" id="theme-toggle-btn"><i class="fas fa-moon"></i></button>
+            </div>
+        </div>
+        
+        <div id="permit-wrapper">
+            <div class="permit-preview">
+                <p class="serial-number">الرقم: <span id="preview-serial"></span></p>
+                <div class="permit-header">
+                    <h1>بسم الله الرحمن الرحيم</h1>
+                    <h2 id="preview-title"></h2>
+                </div>
+                <div class="permit-content" id="preview-content"></div>
+                <div class="permit-footer">
+                        <div class="footer-section">
+                            <p>رمز التحقق</p>
+                            <div class="serial-container" id="serial-container"></div>
+                        </div>
+                        <div class="footer-section">
+                            <p>التوقيع</p>
+                            <img id="signature-preview-img" src="" alt="">
+                        </div>
+                        <div class="footer-section">
+                            <p>الختم الرسمي</p>
+                            <img id="stamp-preview-img" src="" alt="صورة الختم">
+                        </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fullscreen Editor Modal -->
+    <div id="editor-modal">
+        <textarea id="modal-textarea"></textarea>
+        <button class="btn btn-primary" id="modal-save-btn"><i class="fas fa-check"></i> حفظ وإغلاق</button>
+    </div>
+
+    <!-- JavaScript Libraries -->
+    <script src="html2canvas.min.js"></script>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const DOM = Object.fromEntries(
+            [...document.querySelectorAll('[id]')].map(el => [ el.id.replace(/-(\w)/g, (_, c) => c.toUpperCase()), el ])
+        );
+        DOM.body = document.body;
+        DOM.permitPreview = document.querySelector('.permit-preview');
+
+        let isDrawing = false, lastX = 0, lastY = 0;
+        let savedPermits = [];
+        let currentPermitId = null;
+        let currentSignatureColor = "#000";
+        let currentSignatureSize = 2.5;
+        const ctx = DOM.signatureCanvas.getContext('2d', { willReadFrequently: true });
+        let signatureHistory = [];
+
+        // --- Placeholders and Labels ---
+        const ALL_PLACEHOLDERS = { '{{NAME}}': 'soldierName', '{{RANK}}': 'rank', '{{MIL_ID}}': 'milId', '{{UNIT}}': 'unit', '{{START_DATE}}': 'startDate', '{{END_DATE}}': 'endDate', '{{DURATION}}': 'duration', '{{REASON}}': 'reason' };
+        const OPTIONAL_FIELD_LABELS = {
+            'nationality': 'الجنسية', 'bloodType': 'فصيلة الدم', 'religion': 'الديانة', 'nationalId': 'رقم الهوية الوطنية',
+            'passportId': 'رقم جواز السفر', 'missionDetails': 'طبيعة المهمة', 'vehicleType': 'نوع المركبة',
+            'vehiclePlate': 'رقم لوحة المركبة', 'weaponType': 'نوع السلاح', 'weaponSerial': 'رقم السلاح'
+        };
+
+        // --- Extensive Templates ---
+        const templates = {
+            leave_regular: { name: 'إجازة اعتيادية', title: 'تصريح إجازة اعتيادية', content: 'نظاماً، وبعد استحقاق المذكور أدناه للإجازة، فقد تقرر منحه:\n\nالرتبة/ {{RANK}}\nالاسم/ {{NAME}}\nالرقم العسكري/ {{MIL_ID}}\nالوحدة/ {{UNIT}}\n\nإجازة اعتيادية لمدة ({{DURATION}}) اعتباراً من تاريخ {{START_DATE}} وتنتهي بنهاية دوام يوم {{END_DATE}} لقضائها في {{REASON}}.\n\nعلى المذكور مباشرة عمله فور انتهاء إجازته. وعلى الجهات المختصة تسهيل مهمته.' },
+            mission_internal: { name: 'تكليف بمهمة', title: 'أمر تكليف بمهمة', content: 'بناءً على مقتضيات المصلحة العامة، يُكلّف:\n\nالرتبة/ {{RANK}}\nالاسم/ {{NAME}}\n\nبالقيام بمهمة رسمية في {{REASON}}، وذلك اعتباراً من تاريخ {{START_DATE}} ولمدة ({{DURATION}}).\n\nعلى المذكور التقيد بالتعليمات والأنظمة العسكرية.' },
+            vehicle_pass: { name: 'تصريح دخول مركبة', title: 'تصريح دخول مركبة', content: 'يُصرّح بدخول المركبة التابعة للمذكور أدناه إلى مرافق الوحدة:\n\nالرتبة/ {{RANK}}\nالاسم/ {{NAME}}\n\nوذلك لمدة ({{DURATION}}) تبدأ من {{START_DATE}}. يخضع التصريح لجميع إجراءات التفتيش الأمنية.' },
+            weapon_permit: { name: 'تصريح حمل سلاح', title: 'تصريح حمل ومرافقة سلاح', content: 'يُصرح للمذكور أدناه بحمل السلاح الرسمي الموضح أدناه أثناء تأدية الواجب:\n\nالرتبة/ {{RANK}}\nالاسم/ {{NAME}}\nالرقم العسكري/ {{MIL_ID}}\n\nهذا التصريح سارٍ لمدة ({{DURATION}}) اعتباراً من {{START_DATE}}. ويجب إبرازه عند الطلب.' },
+            promotion: { name: 'قرار ترقية', title: 'قرار ترقية', content: 'بناءً على الصلاحيات المخولة لنا، فقد تقرر ترقية:\n\nالرتبة/ {{RANK}}\nالاسم/ {{NAME}}\nالرقم العسكري/ {{MIL_ID}}\n\nإلى رتبة (( {{REASON}} )) اعتباراً من تاريخ {{START_DATE}}.\n\nنتمنى له دوام التوفيق والسداد في خدمة دينه ومليكه ووطنه.' },
+            clearance: { name: 'شهادة إخلاء طرف', title: 'شهادة إخلاء طرف', content: 'تشهد قيادة {{UNIT}} بأن المذكور أدناه:\n\nالرتبة/ {{RANK}}\nالاسم/ {{NAME}}\nالرقم العسكري/ {{MIL_ID}}\n\nقد أخلى طرفه من جميع العهد المسجلة عليه بالوحدة حتى تاريخه، وقد مُنحت له هذه الشهادة بناءً على طلبه لتقديمها إلى {{REASON}}.' },
+        };
+
+        // --- Functions ---
+        function populateTemplatesDropdown() {
+            DOM.permitTemplate.innerHTML = Object.keys(templates).map(key => `<option value="${key}">${templates[key].name}</option>`).join('');
+        }
+        
+        function initSignaturePad() {
+            const resizeCanvas = () => {
+                const ratio = Math.max(window.devicePixelRatio || 1, 1);
+                DOM.signatureCanvas.width = DOM.signatureCanvas.offsetWidth * ratio;
+                DOM.signatureCanvas.height = DOM.signatureCanvas.offsetHeight * ratio;
+                ctx.scale(ratio, ratio);
+                ctx.lineWidth = currentSignatureSize; ctx.lineCap = 'round'; ctx.strokeStyle = currentSignatureColor;
+                if (signatureHistory.length > 0) ctx.putImageData(signatureHistory[signatureHistory.length - 1], 0, 0);
+            };
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+            
+            const getCoords = e => {
+                const rect = DOM.signatureCanvas.getBoundingClientRect();
+                const touch = e.touches ? e.touches[0] : e;
+                return [touch.clientX - rect.left, touch.clientY - rect.top];
+            };
+            
+            const startDrawing = e => {
+                e.preventDefault();
+                isDrawing = true;
+                signatureHistory.push(ctx.getImageData(0, 0, DOM.signatureCanvas.width, DOM.signatureCanvas.height));
+                [lastX, lastY] = getCoords(e);
+            };
+            const draw = e => {
+                if (!isDrawing) return; e.preventDefault();
+                const [x, y] = getCoords(e);
+                ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(x, y); ctx.stroke();
+                [lastX, lastY] = [x, y];
+            };
+            const stopDrawing = () => { if (isDrawing) { isDrawing = false; updateAndSave(); } };
+
+            ['mousedown', 'touchstart'].forEach(evt => DOM.signatureCanvas.addEventListener(evt, startDrawing));
+            ['mousemove', 'touchmove'].forEach(evt => DOM.signatureCanvas.addEventListener(evt, draw));
+            ['mouseup', 'mouseleave', 'touchend'].forEach(evt => DOM.signatureCanvas.addEventListener(evt, stopDrawing));
+        }
+
+        function setupSignatureControls() {
+            document.querySelectorAll('.signature-controls .color-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelector('.signature-controls .color-btn.active').classList.remove('active');
+                    btn.classList.add('active');
+                    ctx.strokeStyle = currentSignatureColor = btn.dataset.color;
+                });
+            });
+            document.querySelectorAll('.signature-controls .size-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelector('.signature-controls .size-btn.active').classList.remove('active');
+                    btn.classList.add('active');
+                    ctx.lineWidth = currentSignatureSize = parseFloat(btn.dataset.size);
+                });
+            });
+            DOM.undoSignature.addEventListener('click', () => {
+                if (signatureHistory.length > 1) {
+                    signatureHistory.pop();
+                    ctx.putImageData(signatureHistory[signatureHistory.length - 1], 0, 0);
+                    updateAndSave();
+                } else {
+                    clearSignature();
+                }
+            });
+        }
+        
+        const clearSignature = () => {
+             ctx.clearRect(0, 0, DOM.signatureCanvas.width, DOM.signatureCanvas.height);
+             signatureHistory = [];
+             updateAndSave();
+        }
+
+        function updatePreview() {
+            const templateKey = DOM.permitTemplate.value;
+            const template = templates[templateKey];
+            
+            let finalContent = DOM.contentEditor.value;
+            Object.entries(ALL_PLACEHOLDERS).forEach(([placeholder, elementId]) => {
+                const value = DOM[elementId] ? DOM[elementId].value : '';
+                finalContent = finalContent.replace(new RegExp(placeholder, 'g'), value || '...');
+            });
+            
+            let optionalDataHtml = '';
+            Object.entries(OPTIONAL_FIELD_LABELS).forEach(([elementId, label]) => {
+                if (DOM[elementId] && DOM[elementId].value) {
+                    optionalDataHtml += `<div><strong>- ${label}:</strong> ${DOM[elementId].value}</div>`;
+                }
+            });
+
+            DOM.previewContent.innerHTML = finalContent.replace(/\n/g, '<br>') + (optionalDataHtml ? `<div class="optional-data">${optionalDataHtml}</div>` : '');
+            DOM.previewTitle.textContent = template.title;
+            DOM.signaturePreviewImg.src = signatureHistory.length > 0 ? DOM.signatureCanvas.toDataURL() : '';
+
+            const permitId = currentPermitId || 'جديد';
+            DOM.previewSerial.textContent = permitId;
+            DOM.serialContainer.textContent = `رقم التصريح: ${permitId}`;
+        }
+        
+        function saveCurrentState() {
+            const permitData = {
+                id: currentPermitId || Date.now(),
+                templateKey: DOM.permitTemplate.value,
+                content: DOM.contentEditor.value,
+                signature: signatureHistory.length > 0 ? DOM.signatureCanvas.toDataURL() : '',
+                stamp: DOM.stampPreviewImg.src || '',
+                fontFamily: DOM.fontSelect.value, fontSize: DOM.fontSizeSlider.value, fontColor: DOM.fontColorPicker.value,
+                rawData: {}
+            };
+            Object.values(ALL_PLACEHOLDERS).forEach(id => { if (DOM[id]) permitData.rawData[id] = DOM[id].value; });
+            Object.keys(OPTIONAL_FIELD_LABELS).forEach(id => { if (DOM[id]) permitData.rawData[id] = DOM[id].value; });
+            return permitData;
+        }
+
+        function updateAndSave() {
+            const permitData = saveCurrentState();
+            const existingIndex = savedPermits.findIndex(p => p.id === permitData.id);
+            if (existingIndex > -1) savedPermits[existingIndex] = permitData;
+            else { savedPermits.push(permitData); currentPermitId = permitData.id; }
+            localStorage.setItem('militaryPermitsV7', JSON.stringify(savedPermits));
+            updatePreview(); renderHistory();
+        }
+
+        function renderHistory() {
+            DOM.historyList.innerHTML = savedPermits.length ? '' : '<p style="padding:10px; opacity:0.7;">السجل فارغ.</p>';
+            savedPermits.slice().reverse().forEach(permit => {
+                const name = permit.rawData.soldierName || 'غير مسمى';
+                const item = document.createElement('li');
+                item.className = 'history-item';
+                item.innerHTML = `<div class="history-item-header">
+                    <div class="history-item-info" data-id="${permit.id}">
+                        <strong>${templates[permit.templateKey].name}</strong>
+                        <p style="font-size:0.9em; opacity:0.8;">${name} - ${new Date(permit.id).toLocaleDateString()}</p>
+                    </div>
+                    <div class="history-item-actions">
+                        <button class="history-btn view" data-id="${permit.id}" title="عرض"><i class="fas fa-eye"></i></button>
+                        <button class="history-btn edit" data-id="${permit.id}" title="تعديل"><i class="fas fa-pencil-alt"></i></button>
+                        <button class="history-btn share" data-id="${permit.id}" title="مشاركة"><i class="fas fa-share-alt"></i></button>
+                        <button class="history-btn print" data-id="${permit.id}" title="طباعة"><i class="fas fa-print"></i></button>
+                        <button class="history-btn delete" data-id="${permit.id}" title="حذف"><i class="fas fa-trash"></i></button>
+                    </div></div>`;
+                DOM.historyList.appendChild(item);
+            });
+        }
+
+        function loadPermit(id) {
+            const permit = savedPermits.find(p => p.id === id);
+            if (!permit) return;
+            currentPermitId = id;
+            
+            DOM.permitTemplate.value = permit.templateKey;
+            Object.entries(permit.rawData).forEach(([key, value]) => { if (DOM[key]) DOM[key].value = value; });
+            DOM.contentEditor.value = permit.content;
+            
+            clearSignature();
+            if (permit.signature) {
+                const img = new Image();
+                img.onload = () => { 
+                    ctx.drawImage(img, 0, 0, DOM.signatureCanvas.width / window.devicePixelRatio, DOM.signatureCanvas.height / window.devicePixelRatio);
+                    signatureHistory.push(ctx.getImageData(0, 0, DOM.signatureCanvas.width, DOM.signatureCanvas.height));
+                };
+                img.src = permit.signature;
+            }
+            
+            DOM.stampPreviewImg.src = permit.stamp || '';
+            DOM.stampPreviewImg.style.display = permit.stamp ? 'block' : 'none';
+            DOM.fontSelect.value = permit.fontFamily || "'Amiri', serif";
+            DOM.fontSizeSlider.value = permit.fontSize || 19;
+            DOM.fontColorPicker.value = permit.fontColor || '#000000';
+            applyFontSettings(); updatePreview();
+        }
+
+        function deletePermit(id) {
+            if (!confirm('هل أنت متأكد من حذف هذا التصريح نهائياً؟')) return;
+            savedPermits = savedPermits.filter(p => p.id !== id);
+            localStorage.setItem('militaryPermitsV7', JSON.stringify(savedPermits));
+            if (currentPermitId === id) newPermit();
+            renderHistory();
+        }
+        
+        function newPermit() {
+            currentPermitId = null;
+            document.querySelectorAll('#sidebar input[type="text"], #sidebar input[type="date"], #sidebar textarea').forEach(el => el.value = '');
+            clearSignature();
+            DOM.stampPreviewImg.src = ''; DOM.stampPreviewImg.style.display = 'none';
+            DOM.startDate.value = new Date().toISOString().split('T')[0];
+            DOM.contentEditor.value = templates[DOM.permitTemplate.value].content;
+            updatePreview();
+        }
+        
+        function toggleSidebar() { DOM.sidebar.classList.toggle('visible'); DOM.sidebarOverlay.classList.toggle('visible'); }
+
+        async function captureAndAct(action) {
+            const button = action === 'share' ? DOM.shareBtn : DOM.saveImageBtn;
+            const originalIcon = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; button.disabled = true;
+            try {
+                await document.fonts.ready;
+                const canvas = await html2canvas(DOM.permitPreview, { scale: 3, useCORS: true, backgroundColor: '#ffffff' });
+                if (action === 'save') {
+                    const link = document.createElement('a');
+                    link.download = `تصريح-${currentPermitId || 'جديد'}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                } else if (action === 'share' && navigator.share) {
+                    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                    const file = new File([blob], `تصريح-${currentPermitId}.png`, { type: 'image/png' });
+                    await navigator.share({ title: 'تصريح عسكري', text: `تصريح رقم: ${currentPermitId}`, files: [file] });
+                } else { alert('المشاركة غير مدعومة في هذا المتصفح. يرجى حفظ الصورة ومشاركتها يدوياً.'); }
+            } catch (e) { console.error('Action failed:', e); alert('حدث خطأ. يرجى المحاولة مرة أخرى.'); }
+            finally { button.innerHTML = originalIcon; button.disabled = false; }
+        }
+        
+        function applyFontSettings() {
+            document.documentElement.style.setProperty('--preview-font-size', `${DOM.fontSizeSlider.value}px`);
+            document.documentElement.style.setProperty('--preview-font-color', DOM.fontColorPicker.value);
+            DOM.permitPreview.style.fontFamily = DOM.fontSelect.value;
+        }
+        
+        // --- Event Listeners ---
+        DOM.sidebar.addEventListener('input', updatePreview);
+        DOM.permitTemplate.addEventListener('change', newPermit);
+        DOM.saveBtn.addEventListener('click', updateAndSave);
+        DOM.clearSignature.addEventListener('click', clearSignature);
+        
+        DOM.toggleSidebarBtn.addEventListener('click', toggleSidebar);
+        DOM.sidebarOverlay.addEventListener('click', toggleSidebar);
+        DOM.printBtn.addEventListener('click', () => window.print());
+        DOM.saveImageBtn.addEventListener('click', () => captureAndAct('save'));
+        DOM.shareBtn.addEventListener('click', () => captureAndAct('share'));
+        
+        ['change', 'input'].forEach(evt => {
+            DOM.fontSelect.addEventListener(evt, () => { applyFontSettings(); if(evt==='change') updateAndSave(); });
+            DOM.fontSizeSlider.addEventListener(evt, () => { applyFontSettings(); if(evt==='change') updateAndSave(); });
+            DOM.fontColorPicker.addEventListener(evt, () => { applyFontSettings(); if(evt==='change') updateAndSave(); });
+        });
+        
+        DOM.themeToggleBtn.addEventListener('click', () => {
+            DOM.body.classList.toggle('dark-mode');
+            localStorage.setItem('themeV7', DOM.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        });
+        
+        DOM.uploadStampBtn.addEventListener('click', () => DOM.stampUpload.click());
+        DOM.stampUpload.addEventListener('change', function(e) {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => { DOM.stampPreviewImg.src = e.target.result; DOM.stampPreviewImg.style.display = 'block'; updateAndSave(); }
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+        DOM.removeStampBtn.addEventListener('click', () => { DOM.stampPreviewImg.src = ''; DOM.stampPreviewImg.style.display = 'none'; updateAndSave(); });
+
+        DOM.historyList.addEventListener('click', e => {
+            const button = e.target.closest('.history-btn');
+            const info = e.target.closest('.history-item-info');
+            if (button) {
+                const id = parseInt(button.dataset.id);
+                if (button.classList.contains('delete')) deletePermit(id);
+                else {
+                    loadPermit(id);
+                    if (button.classList.contains('share')) captureAndAct('share');
+                    if (button.classList.contains('print')) window.print();
+                    if (button.classList.contains('edit') || button.classList.contains('view')) toggleSidebar();
+                }
+            } else if (info) {
+                loadPermit(parseInt(info.dataset.id));
+            }
+        });
+        
+        DOM.fullscreenEditBtn.addEventListener('click', () => { DOM.modalTextarea.value = DOM.contentEditor.value; DOM.editorModal.classList.add('visible'); });
+        DOM.modalSaveBtn.addEventListener('click', () => { DOM.contentEditor.value = DOM.modalTextarea.value; DOM.editorModal.classList.remove('visible'); updateAndSave(); });
+
+        document.querySelectorAll('.accordion-details').forEach(details => {
+            details.addEventListener('toggle', (e) => {
+                if(e.target.open) {
+                    document.querySelectorAll('.accordion-details').forEach(d => { if(d !== e.target) d.open = false; });
+                }
+            });
+        });
+        
+        // --- Initialization ---
+        function initialize() {
+            populateTemplatesDropdown(); initSignaturePad(); setupSignatureControls();
+            const savedTheme = localStorage.getItem('themeV7');
+            if (savedTheme === 'dark') DOM.body.classList.add('dark-mode');
+            savedPermits = JSON.parse(localStorage.getItem('militaryPermitsV7')) || [];
+            renderHistory(); newPermit();
+        }
+        initialize();
+    });
+    </script>
+</body>
+</html>
